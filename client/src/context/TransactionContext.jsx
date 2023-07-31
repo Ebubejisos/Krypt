@@ -1,8 +1,11 @@
 /* eslint-disable react/prop-types */
 import React, { useState, useEffect } from "react";
 import { ethers } from "ethers";
-
-import { contractABI, contractAddress } from "../utils/constants";
+import {
+  contractABI,
+  contractAddress,
+  contractBytecode,
+} from "../utils/constants";
 
 // exporting the react contexts, here we have only one context which will pass variables across components;
 export const TransactionContext = React.createContext();
@@ -10,17 +13,35 @@ export const TransactionContext = React.createContext();
 // Metamask provides ethereum object (window.ethereum) which will contain our addresses and our smart contract
 const { ethereum } = window;
 
-const getEthereumContract = () => {
-  const provider = new ethers.providers.Web3Provider(ethereum);
-  const signer = provider.getSigner();
-  // returns our smart contract as an object using metamask and ethers ;
-  const transactionContract = new ethers.Contract(
-    contractAddress,
-    contractABI,
-    signer,
-  );
-  console.log(transactionContract);
-  // return transactionContract;
+const getEthereumContract = async () => {
+  try {
+    // fetching our verified contract abi from etherscan
+    const response = await fetch(
+      "https://api-sepolia.etherscan.io/api?module=contract&action=getabi&address=0xe96199E3985d61Fc464CDcdD66C38b58A3A758b4&apikey=YourApiKeyToken",
+    );
+    const data = await response.json();
+    const abi = data.result;
+
+    const provider = new ethers.JsonRpcProvider(
+      "https://rpc.notadegen.com/sepolia",
+    );
+    // only while using Wallet as contract runner was I able to interact with the smartt contract
+    const wallet = new ethers.Wallet(
+      "014d48a975ccf83a8a99107284b54d3367b2fb30896127a8351635be69fc78fd",
+      provider,
+    );
+    // returns our smart contract as an object using ethers ;
+    const transactionContract = new ethers.Contract(
+      contractAddress,
+      abi,
+      wallet,
+    );
+    /*let count = await transactionContract.getTransactionCount();
+    const readableCount = count.toString();*/
+    return transactionContract;
+  } catch (error) {
+    console.log(error);
+  }
 };
 // exporting context container for the App or target parent component
 export const TransactionProvider = ({ children }) => {
@@ -82,8 +103,12 @@ export const TransactionProvider = ({ children }) => {
     try {
       if (!ethereum) return alert("Please, install metamask");
       const { addressTo, amount, keyword, message } = formData;
-      const transactionContract = getEthereumContract();
-      const parsedAmount = ethers.utils.parse(amount);
+      const transactionContract = await getEthereumContract();
+      console.log(transactionContract);
+      // converts the user input into BigNumber Ethereum
+      const parsedAmount = ethers.parseEther(amount);
+      // coverts BigNumber ETH into hex value
+      const hexString = ethers.toBeHex(parsedAmount);
 
       await ethereum.request({
         method: "eth_sendTransaction",
@@ -91,8 +116,8 @@ export const TransactionProvider = ({ children }) => {
           {
             from: currentAccount,
             to: addressTo,
-            gas: "0x5208", //amount in hexadecimal is equivalent to 2100Gwei a subunit of ether
-            value: parsedAmount._hex, //amount provided in the input field
+            gas: "0x5208", // 2100Gwei; gas fee SI unit
+            value: hexString, // user input in hexadecimal
           },
         ],
       });
@@ -109,14 +134,13 @@ export const TransactionProvider = ({ children }) => {
       console.log(`Loading - ${transactionHash.hash}`);
       setIsLoading(false);
       console.log(`Success - ${transactionHash.hash}`);
-
-      const transactionCount = await transactionContract.getTransactionCount();
-      setTransactionCount(transactionCount.toNumber());
     } catch (error) {
       console.error(error);
-      throw new Error("Problem connecting to wallet");
     }
   };
+
+  const shortenAddress = (address) =>
+    `${address.slice(0, 5)}...${address.slice(address.length - 4)}`;
 
   return (
     <TransactionContext.Provider
@@ -126,6 +150,7 @@ export const TransactionProvider = ({ children }) => {
         formData,
         handleChange,
         sendTransaction,
+        shortenAddress,
       }}
     >
       {children}

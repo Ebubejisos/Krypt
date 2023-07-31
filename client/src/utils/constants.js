@@ -1,4 +1,5 @@
-import abi from "./Transactions.json";
+import solContract from "./Transactions.json";
 
-export const contractABI = abi.abi;
-export const contractAddress = "0x78a699695379633342d6502e46B8E5F6B0C01B1D";
+export const contractBytecode = solContract.bytecode;
+export const contractABI = solContract.abi;
+export const contractAddress = "0xe96199E3985d61Fc464CDcdD66C38b58A3A758b4";

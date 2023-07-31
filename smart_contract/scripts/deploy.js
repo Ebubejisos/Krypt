@@ -1,13 +1,14 @@
+const { ethers } = require("hardhat");
 // function that deploys our contract
 const main = async () => {
   // generates instances of our contract
-  const transactionsFactory = await hre.ethers.getContractFactory("Transactions");
+  const [deployer] = await ethers.getSigners();
+
+  console.log("Deploying contracts with the account:", deployer.address);
   // for one instance of our contract
-  const transactionsContract = await transactionsFactory.deploy();
+  const transactionsContract = await ethers.deployContract("Transactions");
 
-  await transactionsContract.deployed();
-
-  console.log("Transactions address: ", transactionsContract.address);
+  console.log("Transactions address: ", await transactionsContract.getAddress());
 
 }
 
