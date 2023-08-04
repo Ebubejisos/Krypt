@@ -1,6 +1,6 @@
 /* eslint-disable no-undef */
 module.exports = {
-  purge: ["./src/**/*.{js,jsx,ts,tsx}", "./public/index.html"],
+  content: ["./src/**/*.{js,jsx,ts,tsx}", "./public/index.html"],
   mode: "jit",
   darkMode: true, // or 'media' or 'class'
   theme: {
